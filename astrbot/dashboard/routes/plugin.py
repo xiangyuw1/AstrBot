@@ -1262,15 +1262,26 @@ class PluginRoute(Route):
     async def get_plugins(self):
         _plugin_resp = []
         plugin_name = request.args.get("name")
-        for plugin in self.plugin_manager.context.get_all_stars():
-            if plugin_name and plugin.name != plugin_name:
-                continue
+
+        plugins = [
+            p
+            for p in self.plugin_manager.context.get_all_stars()
+            if not (plugin_name and p.name != plugin_name)
+        ]
+
+        async def process_plugin(plugin):
             logo_url = None
             if plugin.logo_path:
                 logo_url = await self.get_plugin_logo_token(plugin.logo_path)
+            pages = await self._discover_plugin_pages(plugin)
+            return plugin, logo_url, pages
+
+        results = await asyncio.gather(*(process_plugin(p) for p in plugins))
+
+        for plugin, logo_url, pages in results:
             _t = {
                 "name": plugin.name,
-                "repo": "" if plugin.repo is None else plugin.repo,
+                "repo": "" if plugin.repo is None else str(plugin.repo),
                 "author": plugin.author,
                 "desc": plugin.desc,
                 "version": plugin.version,
@@ -1283,6 +1294,7 @@ class PluginRoute(Route):
                 "astrbot_version": plugin.astrbot_version,
                 "installed_at": self._get_plugin_installed_at(plugin),
                 "i18n": plugin.i18n,
+                "pages": [p.name for p in pages],
             }
             # 检查是否为全空的幽灵插件
             if not any(
@@ -1320,7 +1332,7 @@ class PluginRoute(Route):
                 .ok(
                     {
                         "name": plugin.name,
-                        "repo": "" if plugin.repo is None else plugin.repo,
+                        "repo": "" if plugin.repo is None else str(plugin.repo),
                         "author": plugin.author,
                         "desc": plugin.desc,
                         "version": plugin.version,
