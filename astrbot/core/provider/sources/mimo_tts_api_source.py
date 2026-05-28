@@ -41,10 +41,20 @@ class ProviderMiMoTTSAPI(TTSProvider):
         self.seed_text = provider_config.get(
             "mimo-tts-seed-text", DEFAULT_MIMO_TTS_SEED_TEXT
         )
+        self.user_prompt = provider_config.get("mimo-tts-user-prompt", "")
+        self.voice_audio = provider_config.get("mimo-tts-voice-audio", "")
         self.set_model(provider_config.get("model", DEFAULT_MIMO_TTS_MODEL))
         self.client = create_http_client(self.timeout, self.proxy)
 
+    def _is_v2_5(self) -> bool:
+        """Check if the current model is a v2.5 series model."""
+        return "v2.5" in self.model_name
+
     def _build_user_prompt(self) -> str | None:
+        # For voicedesign models, custom user prompt takes precedence.
+        if "voicedesign" in self.model_name and self.user_prompt.strip():
+            return self.user_prompt.strip()
+        # For other models, use seed_text as fallback.
         seed_text = self.seed_text.strip()
         return seed_text or None
 
@@ -62,8 +72,14 @@ class ProviderMiMoTTSAPI(TTSProvider):
 
         # MiMo recommends using only the singing style tag at the very beginning.
         if "唱歌" in style_content:
+            # v2.5 uses parentheses; v2 uses <style> tags.
+            if self._is_v2_5():
+                return "（唱歌）"
             return "<style>唱歌</style>"
 
+        # v2.5 uses parentheses; v2 uses <style> tags.
+        if self._is_v2_5():
+            return f"（{style_content}）"
         return f"<style>{style_content}</style>"
 
     def _build_assistant_content(self, text: str) -> str:
@@ -88,10 +104,12 @@ class ProviderMiMoTTSAPI(TTSProvider):
             }
         )
 
-        audio_params = {"format": self.audio_format}
-        # voice design 模型不支持 audio.voice 参数
+        audio_params: dict[str, str] = {"format": self.audio_format}
         if "voicedesign" not in self.model_name:
-            audio_params["voice"] = self.voice
+            if "voiceclone" in self.model_name and self.voice_audio.strip():
+                audio_params["voice"] = self.voice_audio.strip()
+            else:
+                audio_params["voice"] = self.voice
 
         return {
             "model": self.model_name,
