@@ -351,8 +351,8 @@ def test_mimo_tts_voiceclone_uses_voice_audio(monkeypatch, tmp_path):
         payload = provider._build_payload("hello")
         import base64
 
-        expected = base64.b64encode(b"fake audio data").decode("utf-8")
-        assert payload["audio"]["voice"] == expected
+        expected_b64 = base64.b64encode(b"fake audio data").decode("utf-8")
+        assert payload["audio"]["voice"] == f"data:audio/wav;base64,{expected_b64}"
     finally:
         asyncio.run(provider.terminate())
 

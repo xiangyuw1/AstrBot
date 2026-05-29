@@ -96,7 +96,11 @@ class ProviderMiMoTTSAPI(TTSProvider):
             logger.warning("Voice audio file not found: %s", path)
             return ""
         try:
-            return base64.b64encode(path.read_bytes()).decode("utf-8")
+            suffix = path.suffix.lower().lstrip(".")
+            mime_map = {"wav": "audio/wav", "mp3": "audio/mpeg", "ogg": "audio/ogg"}
+            mime = mime_map.get(suffix, "audio/wav")
+            b64 = base64.b64encode(path.read_bytes()).decode("utf-8")
+            return f"data:{mime};base64,{b64}"
         except Exception as exc:
             logger.warning("Failed to read voice audio file %s: %s", path, exc)
             return ""
