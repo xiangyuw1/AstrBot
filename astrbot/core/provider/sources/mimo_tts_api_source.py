@@ -1,4 +1,5 @@
 import base64
+import re
 import uuid
 from pathlib import Path
 
@@ -105,6 +106,32 @@ class ProviderMiMoTTSAPI(TTSProvider):
             logger.warning("Failed to read voice audio file %s: %s", path, exc)
             return ""
 
+    # Mapping for digit-by-digit reading (1→幺 is standard in Chinese for codes/IDs)
+    _DIGIT_MAP = str.maketrans("0123456789", "零幺二三四五六七八九")
+
+    @staticmethod
+    def _preprocess_text(text: str) -> str:
+        """Convert standalone digit sequences (3+) to digit-by-digit reading.
+
+        Examples:
+            985大学 → 九八五大学
+            211工程 → 二幺幺工程
+            电话13812345678 → 电话幺三八幺二三四五六七八
+            今天是2024年 → 今天是2024年 (followed by 年, preserved)
+            我有3个 → 我有3个 (short digit, preserved)
+        """
+
+        def _replace_digits(m: re.Match) -> str:
+            return m.group(0).translate(ProviderMiMoTTSAPI._DIGIT_MAP)
+
+        # Match standalone 3+ digit sequences NOT followed by Chinese counting/time units.
+        # (?<!\d) and (?!\d) prevent matching substrings of longer numbers.
+        return re.sub(
+            r"(?<!\d)\d{3,}(?!\d)(?![年月日个块元斤两只条把瓶杯碗盘张件套楼层室号])",
+            _replace_digits,
+            text,
+        )
+
     def _build_payload(self, text: str) -> dict:
         messages: list[dict[str, str]] = []
 
@@ -142,6 +169,7 @@ class ProviderMiMoTTSAPI(TTSProvider):
         }
 
     async def get_audio(self, text: str) -> str:
+        text = self._preprocess_text(text)
         response = await self.client.post(
             build_api_url(self.api_base),
             headers=build_headers(self.chosen_api_key),
