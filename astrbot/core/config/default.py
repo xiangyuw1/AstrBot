@@ -1628,7 +1628,7 @@ CONFIG_METADATA_2 = {
                         "mimo-tts-dialect": "",
                         "mimo-tts-seed-text": "Hello, MiMo, have you had lunch?",
                         "mimo-tts-user-prompt": "",
-                        "mimo-tts-voice-audio": "",
+                        "mimo-tts-voice-audio-path": "",
                         "timeout": "20",
                         "proxy": "",
                     },
@@ -2609,12 +2609,10 @@ CONFIG_METADATA_2 = {
                         "type": "string",
                         "hint": "自定义 user 角色消息。使用 voicedesign 模型时为必填项，用于通过自然语言描述音色。其他模型可留空（优先级高于种子文本）。",
                     },
-                    "mimo-tts-voice-audio": {
-                        "description": "克隆音频 (Base64)",
+                    "mimo-tts-voice-audio-path": {
+                        "description": "克隆音频文件路径",
                         "type": "string",
-                        "hint": "用于 voiceclone 模型的待模拟音频 Base64 编码。仅 voiceclone 模型需要填写。",
-                        "editor_mode": True,
-                        "editor_language": "text",
+                        "hint": "voiceclone 模型的待模拟音频文件的本地路径，例如 /path/to/audio.wav。仅 voiceclone 模型需要填写。",
                     },
                     "fishaudio-tts-character": {
                         "description": "character",

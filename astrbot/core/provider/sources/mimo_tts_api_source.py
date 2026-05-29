@@ -1,5 +1,8 @@
 import base64
 import uuid
+from pathlib import Path
+
+from astrbot import logger
 
 from ..entities import ProviderType
 from ..provider import TTSProvider
@@ -42,7 +45,7 @@ class ProviderMiMoTTSAPI(TTSProvider):
             "mimo-tts-seed-text", DEFAULT_MIMO_TTS_SEED_TEXT
         )
         self.user_prompt = provider_config.get("mimo-tts-user-prompt", "")
-        self.voice_audio = provider_config.get("mimo-tts-voice-audio", "")
+        self.voice_audio_path = provider_config.get("mimo-tts-voice-audio-path", "")
         self.set_model(provider_config.get("model", DEFAULT_MIMO_TTS_MODEL))
         self.client = create_http_client(self.timeout, self.proxy)
 
@@ -85,6 +88,19 @@ class ProviderMiMoTTSAPI(TTSProvider):
     def _build_assistant_content(self, text: str) -> str:
         return f"{self._build_style_prefix()}{text}"
 
+    def _read_voice_audio_base64(self) -> str:
+        if not self.voice_audio_path.strip():
+            return ""
+        path = Path(self.voice_audio_path.strip())
+        if not path.exists():
+            logger.warning("Voice audio file not found: %s", path)
+            return ""
+        try:
+            return base64.b64encode(path.read_bytes()).decode("utf-8")
+        except Exception as exc:
+            logger.warning("Failed to read voice audio file %s: %s", path, exc)
+            return ""
+
     def _build_payload(self, text: str) -> dict:
         messages: list[dict[str, str]] = []
 
@@ -106,8 +122,12 @@ class ProviderMiMoTTSAPI(TTSProvider):
 
         audio_params: dict[str, str] = {"format": self.audio_format}
         if "voicedesign" not in self.model_name:
-            if "voiceclone" in self.model_name and self.voice_audio.strip():
-                audio_params["voice"] = self.voice_audio.strip()
+            if "voiceclone" in self.model_name:
+                voice_audio_b64 = self._read_voice_audio_base64()
+                if voice_audio_b64:
+                    audio_params["voice"] = voice_audio_b64
+                else:
+                    audio_params["voice"] = self.voice
             else:
                 audio_params["voice"] = self.voice
 

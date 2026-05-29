@@ -1550,9 +1550,9 @@
         "description": "User prompt",
         "hint": "Custom user role message. Required for voicedesign models to describe the voice via natural language. For other models, leave empty (takes precedence over seed text)."
       },
-      "mimo-tts-voice-audio": {
-        "description": "Clone audio (Base64)",
-        "hint": "Base64-encoded audio sample for voiceclone models. Only needed for voiceclone models."
+      "mimo-tts-voice-audio-path": {
+        "description": "Clone audio file path",
+        "hint": "Local path to the audio file for voiceclone models, e.g. /path/to/audio.wav. Only needed for voiceclone models."
       },
       "fishaudio-tts-character": {
         "description": "character",

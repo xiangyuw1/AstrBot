@@ -1547,9 +1547,9 @@
                 "description": "User-подсказка",
                 "hint": "Пользовательское user-сообщение. Обязательно для voicedesign-моделей для описания голоса на естественном языке. Для других моделей оставьте пустым (имеет приоритет над начальным текстом)."
             },
-            "mimo-tts-voice-audio": {
-                "description": "Аудио для клонирования (Base64)",
-                "hint": "Аудио в формате Base64 для voiceclone-моделей. Нужно только для voiceclone."
+            "mimo-tts-voice-audio-path": {
+                "description": "Путь к аудио для клонирования",
+                "hint": "Локальный путь к аудиофайлу для voiceclone-моделей, например /path/to/audio.wav. Нужно только для voiceclone."
             },
             "fishaudio-tts-character": {
                 "description": "Персонаж",

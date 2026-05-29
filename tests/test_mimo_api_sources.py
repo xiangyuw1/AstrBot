@@ -337,17 +337,22 @@ def test_mimo_tts_voicedesign_seed_text_used_when_no_user_prompt():
         asyncio.run(provider.terminate())
 
 
-def test_mimo_tts_voiceclone_uses_voice_audio():
+def test_mimo_tts_voiceclone_uses_voice_audio(monkeypatch, tmp_path):
+    audio_file = tmp_path / "test.wav"
+    audio_file.write_bytes(b"fake audio data")
     provider = _make_tts_provider(
         {
             "model": "mimo-v2.5-tts-voiceclone",
-            "mimo-tts-voice-audio": "SGVsbG8=",
+            "mimo-tts-voice-audio-path": str(audio_file),
             "mimo-tts-seed-text": "",
         }
     )
     try:
         payload = provider._build_payload("hello")
-        assert payload["audio"]["voice"] == "SGVsbG8="
+        import base64
+
+        expected = base64.b64encode(b"fake audio data").decode("utf-8")
+        assert payload["audio"]["voice"] == expected
     finally:
         asyncio.run(provider.terminate())
 
@@ -357,7 +362,7 @@ def test_mimo_tts_voiceclone_falls_back_to_voice_when_no_audio():
         {
             "model": "mimo-v2.5-tts-voiceclone",
             "mimo-tts-voice": "preset_voice",
-            "mimo-tts-voice-audio": "",
+            "mimo-tts-voice-audio-path": "",
             "mimo-tts-seed-text": "",
         }
     )
