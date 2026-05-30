@@ -130,7 +130,7 @@ class ProviderMiMoTTSAPI(TTSProvider):
         # Quantity units (万亿千百十) preserve natural reading: 100万 → 一百万
         # Time units (年月日) preserve natural reading: 2024年 → unchanged
         return re.sub(
-            r"(?<!\d)\d{3,}(?!\d)(?![年月日个块元斤两只条把瓶杯碗盘张件套万亿千百十])",
+            r"(?<!\d)\d{3,}(?!\d)(?![年月日个块元斤两只条把瓶杯碗盘张件套万亿千百十多余])",
             _replace_digits,
             text,
         )
