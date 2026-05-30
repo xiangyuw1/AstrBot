@@ -113,21 +113,24 @@ class ProviderMiMoTTSAPI(TTSProvider):
     def _preprocess_text(text: str) -> str:
         """Convert standalone digit sequences (3+) to digit-by-digit reading.
 
-        Examples:
-            985大学 → 九八五大学
-            211工程 → 二幺幺工程
-            电话13812345678 → 电话幺三八幺二三四五六七八
-            今天是2024年 → 今天是2024年 (followed by 年, preserved)
-            我有3个 → 我有3个 (short digit, preserved)
+        Preserves natural readings when followed by quantity/time units:
+            985大学 → 九八五大学 (code)
+            211工程 → 二幺幺工程 (code)
+            电话13812345678 → 电话幺三八幺二三四五六七八 (phone)
+            100万 → 一百万 (quantity, preserved)
+            3000个 → 3000个 (quantity, preserved)
+            今天是2024年 → 今天是2024年 (time, preserved)
         """
 
         def _replace_digits(m: re.Match) -> str:
             return m.group(0).translate(ProviderMiMoTTSAPI._DIGIT_MAP)
 
-        # Match standalone 3+ digit sequences NOT followed by Chinese counting/time units.
+        # Match standalone 3+ digit sequences NOT followed by quantity/time units.
         # (?<!\d) and (?!\d) prevent matching substrings of longer numbers.
+        # Quantity units (万亿千百十) preserve natural reading: 100万 → 一百万
+        # Time units (年月日) preserve natural reading: 2024年 → unchanged
         return re.sub(
-            r"(?<!\d)\d{3,}(?!\d)(?![年月日个块元斤两只条把瓶杯碗盘张件套楼层室号])",
+            r"(?<!\d)\d{3,}(?!\d)(?![年月日个块元斤两只条把瓶杯碗盘张件套万亿千百十])",
             _replace_digits,
             text,
         )

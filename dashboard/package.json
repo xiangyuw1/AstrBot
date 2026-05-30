@@ -74,6 +74,10 @@
     "overrides": {
       "immutable": "4.3.8",
       "lodash-es": "4.17.23"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "vue-demi"
+    ]
   }
 }
