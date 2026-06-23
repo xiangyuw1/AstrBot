@@ -1630,13 +1630,9 @@
         "description": "Dialect",
         "hint": "Combined with the style prompt at the beginning of the text, for example Northeastern Mandarin, Sichuan dialect, Henan dialect, or Cantonese. v2 series uses <style> tags; v2.5 series uses （） parentheses. Optional."
       },
-      "mimo-tts-seed-text": {
-        "description": "Seed text",
-        "hint": "Sent as an optional user message to help guide tone and speaking style. It is not appended to the synthesis target text."
-      },
       "mimo-tts-user-prompt": {
         "description": "User prompt",
-        "hint": "Custom user role message. Required for voicedesign models to describe the voice via natural language. For other models, leave empty (takes precedence over seed text)."
+        "hint": "Sent as an optional user message to help guide tone and speaking style. It is not appended to the synthesis target text. For voicedesign models, used to describe the voice via natural language."
       },
       "mimo-tts-voice-audio-path": {
         "description": "Clone audio file path",

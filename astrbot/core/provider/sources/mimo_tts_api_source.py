@@ -11,7 +11,6 @@ from ..register import register_provider_adapter
 from .mimo_api_common import (
     DEFAULT_MIMO_API_BASE,
     DEFAULT_MIMO_TTS_MODEL,
-    DEFAULT_MIMO_TTS_SEED_TEXT,
     DEFAULT_MIMO_TTS_VOICE,
     MiMoAPIError,
     build_api_url,
@@ -42,9 +41,6 @@ class ProviderMiMoTTSAPI(TTSProvider):
         self.audio_format = provider_config.get("mimo-tts-format", "wav")
         self.style_prompt = provider_config.get("mimo-tts-style-prompt", "")
         self.dialect = provider_config.get("mimo-tts-dialect", "")
-        self.seed_text = provider_config.get(
-            "mimo-tts-seed-text", DEFAULT_MIMO_TTS_SEED_TEXT
-        )
         self.user_prompt = provider_config.get("mimo-tts-user-prompt", "")
         self.voice_audio_path = provider_config.get("mimo-tts-voice-audio-path", "")
         self.set_model(provider_config.get("model", DEFAULT_MIMO_TTS_MODEL))
@@ -55,12 +51,7 @@ class ProviderMiMoTTSAPI(TTSProvider):
         return "v2.5" in self.model_name
 
     def _build_user_prompt(self) -> str | None:
-        # For voicedesign models, custom user prompt takes precedence.
-        if "voicedesign" in self.model_name and self.user_prompt.strip():
-            return self.user_prompt.strip()
-        # For other models, use seed_text as fallback.
-        seed_text = self.seed_text.strip()
-        return seed_text or None
+        return self.user_prompt.strip() or None
 
     def _build_style_prefix(self) -> str:
         style_parts: list[str] = []

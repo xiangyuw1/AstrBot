@@ -1639,8 +1639,7 @@ CONFIG_METADATA_2 = {
                         "mimo-tts-format": "wav",
                         "mimo-tts-style-prompt": "",
                         "mimo-tts-dialect": "",
-                        "mimo-tts-seed-text": "Hello, MiMo, have you had lunch?",
-                        "mimo-tts-user-prompt": "",
+                        "mimo-tts-user-prompt": "Hello, MiMo, have you had lunch?",
                         "mimo-tts-voice-audio-path": "",
                         "timeout": "20",
                         "proxy": "",
@@ -2631,15 +2630,10 @@ CONFIG_METADATA_2 = {
                         "type": "string",
                         "hint": "与风格提示词一起拼接到文本开头，例如 东北话、四川话、河南话、粤语。v2 系列使用 <style> 标签，v2.5 系列使用（）括号。可留空。",
                     },
-                    "mimo-tts-seed-text": {
-                        "description": "种子文本",
-                        "type": "string",
-                        "hint": "作为可选的 user 消息发送，用于辅助调节语气和风格，不会拼接到待合成文本中。",
-                    },
                     "mimo-tts-user-prompt": {
                         "description": "用户提示词",
                         "type": "string",
-                        "hint": "自定义 user 角色消息。使用 voicedesign 模型时为必填项，用于通过自然语言描述音色。其他模型可留空（优先级高于种子文本）。",
+                        "hint": "作为可选的 user 消息发送，用于辅助调节语气和风格，不会拼接到待合成文本中。voicedesign 模型用于通过自然语言描述音色。",
                     },
                     "mimo-tts-voice-audio-path": {
                         "description": "克隆音频文件路径",

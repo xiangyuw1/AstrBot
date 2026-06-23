@@ -16,7 +16,7 @@ def _make_tts_provider(overrides: dict | None = None) -> ProviderMiMoTTSAPI:
         "api_key": "test-key",
         "mimo-tts-voice": "mimo_default",
         "mimo-tts-format": "wav",
-        "mimo-tts-seed-text": "seed text",
+        "mimo-tts-user-prompt": "seed text",
     }
     if overrides:
         provider_config.update(overrides)
@@ -35,7 +35,7 @@ def _make_stt_provider(overrides: dict | None = None) -> ProviderMiMoSTTAPI:
     return ProviderMiMoSTTAPI(provider_config=provider_config, provider_settings={})
 
 
-def test_mimo_tts_user_prompt_returns_seed_text():
+def test_mimo_tts_user_prompt_returns_user_prompt():
     provider = _make_tts_provider()
     try:
         assert provider._build_user_prompt() == "seed text"
@@ -48,7 +48,7 @@ def test_mimo_tts_assistant_content_prefixes_style_and_dialect():
         {
             "mimo-tts-style-prompt": "开心",
             "mimo-tts-dialect": "四川话",
-            "mimo-tts-seed-text": "You are chatting with a close friend.",
+            "mimo-tts-user-prompt": "You are chatting with a close friend.",
         }
     )
     try:
@@ -62,10 +62,10 @@ def test_mimo_tts_assistant_content_prefixes_style_and_dialect():
         asyncio.run(provider.terminate())
 
 
-def test_mimo_tts_payload_omits_user_message_without_seed_text():
+def test_mimo_tts_payload_omits_user_message_without_user_prompt():
     provider = _make_tts_provider(
         {
-            "mimo-tts-seed-text": "",
+            "mimo-tts-user-prompt": "",
             "mimo-tts-style-prompt": "开心",
         }
     )
@@ -98,7 +98,7 @@ def test_mimo_tts_singing_style_uses_single_style_tag():
 def test_mimo_tts_plain_text_stays_in_assistant_message_when_no_style():
     provider = _make_tts_provider(
         {
-            "mimo-tts-seed-text": "",
+            "mimo-tts-user-prompt": "",
         }
     )
     try:
@@ -113,11 +113,11 @@ def test_mimo_tts_plain_text_stays_in_assistant_message_when_no_style():
         asyncio.run(provider.terminate())
 
 
-def test_mimo_tts_seed_text_is_not_prepended_to_assistant_content():
+def test_mimo_tts_user_prompt_is_not_prepended_to_assistant_content():
     provider = _make_tts_provider(
         {
             "mimo-tts-style-prompt": "开心",
-            "mimo-tts-seed-text": "reference text",
+            "mimo-tts-user-prompt": "reference text",
         }
     )
     try:
@@ -134,7 +134,7 @@ def test_mimo_tts_voicedesign_model_omits_voice_param():
     provider = _make_tts_provider(
         {
             "model": "mimo-v2.5-tts-voicedesign",
-            "mimo-tts-seed-text": "",
+            "mimo-tts-user-prompt": "",
         }
     )
     try:
@@ -151,7 +151,7 @@ def test_mimo_tts_regular_model_includes_voice_param():
         {
             "model": "mimo-v2.5-tts",
             "mimo-tts-voice": "custom_voice",
-            "mimo-tts-seed-text": "",
+            "mimo-tts-user-prompt": "",
         }
     )
     try:
@@ -276,7 +276,7 @@ def test_mimo_tts_v2_5_style_uses_parentheses():
             "model": "mimo-v2.5-tts",
             "mimo-tts-style-prompt": "开心",
             "mimo-tts-dialect": "四川话",
-            "mimo-tts-seed-text": "",
+            "mimo-tts-user-prompt": "",
         }
     )
     try:
@@ -306,7 +306,6 @@ def test_mimo_tts_voicedesign_uses_custom_user_prompt():
         {
             "model": "mimo-v2.5-tts-voicedesign",
             "mimo-tts-user-prompt": "用活泼的声音",
-            "mimo-tts-seed-text": "",
         }
     )
     try:
@@ -319,20 +318,17 @@ def test_mimo_tts_voicedesign_uses_custom_user_prompt():
         asyncio.run(provider.terminate())
 
 
-def test_mimo_tts_voicedesign_seed_text_used_when_no_user_prompt():
+def test_mimo_tts_voicedesign_no_user_message_when_user_prompt_empty():
     provider = _make_tts_provider(
         {
             "model": "mimo-v2.5-tts-voicedesign",
             "mimo-tts-user-prompt": "",
-            "mimo-tts-seed-text": "fallback seed",
         }
     )
     try:
         payload = provider._build_payload("hello")
-        assert payload["messages"][0] == {
-            "role": "user",
-            "content": "fallback seed",
-        }
+        assert len(payload["messages"]) == 1
+        assert payload["messages"][0]["role"] == "assistant"
     finally:
         asyncio.run(provider.terminate())
 
@@ -344,7 +340,7 @@ def test_mimo_tts_voiceclone_uses_voice_audio(monkeypatch, tmp_path):
         {
             "model": "mimo-v2.5-tts-voiceclone",
             "mimo-tts-voice-audio-path": str(audio_file),
-            "mimo-tts-seed-text": "",
+            "mimo-tts-user-prompt": "",
         }
     )
     try:
@@ -363,7 +359,7 @@ def test_mimo_tts_voiceclone_falls_back_to_voice_when_no_audio():
             "model": "mimo-v2.5-tts-voiceclone",
             "mimo-tts-voice": "preset_voice",
             "mimo-tts-voice-audio-path": "",
-            "mimo-tts-seed-text": "",
+            "mimo-tts-user-prompt": "",
         }
     )
     try:
