@@ -26,6 +26,10 @@ from astrbot.core.platform.sources.webchat.webchat_queue_mgr import webchat_queu
 from astrbot.core.utils.active_event_registry import active_event_registry
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 from astrbot.core.utils.datetime_utils import to_utc_isoformat
+from astrbot.core.utils.media_utils import (
+    MEDIA_MIME_EXTENSIONS,
+    detect_image_mime_type_async,
+)
 
 SSE_HEARTBEAT = ": heartbeat\n\n"
 
@@ -497,7 +501,7 @@ class ChatService:
         )
 
     async def create_attachment_from_file(
-        self, filename: str, attach_type: str
+        self, filename: str, attach_type: str, display_name: str | None = None
     ) -> dict | None:
         return await create_attachment_part_from_existing_file(
             filename,
@@ -505,6 +509,7 @@ class ChatService:
             insert_attachment=self.db.insert_attachment,
             attachments_dir=self.attachments_dir,
             fallback_dirs=[self.webchat_img_dir],
+            display_name=display_name,
         )
 
     async def resolve_webchat_file(
@@ -584,6 +589,22 @@ class ChatService:
             raise ChatServiceError("Invalid filename")
 
         await file.save(str(file_path))
+        if attach_type == "image":
+            detected_mime_type = await detect_image_mime_type_async(
+                file_path,
+                default_mime_type=None,
+            )
+            if detected_mime_type:
+                content_type = detected_mime_type
+                detected_suffix = MEDIA_MIME_EXTENSIONS.get(detected_mime_type)
+                if detected_suffix and file_path.suffix.lower() != detected_suffix:
+                    target_path = file_path.with_suffix(detected_suffix)
+                    if target_path.exists():
+                        target_path = (
+                            attachments_dir / f"{uuid.uuid4().hex}{detected_suffix}"
+                        )
+                    await asyncio.to_thread(file_path.rename, target_path)
+                    file_path = target_path
         attachment = await self.db.insert_attachment(
             path=str(file_path),
             type=attach_type,
@@ -877,9 +898,14 @@ class ChatService:
                             ):
                                 yield attachment_saved_event
                         elif msg_type == "file":
-                            filename = result_text.replace("[FILE]", "")
+                            filename = result_text.replace("[FILE]", "", 1)
+                            display_name = None
+                            if "|" in filename:
+                                filename, display_name = filename.split("|", 1)
                             part = await self.create_attachment_from_file(
-                                filename, "file"
+                                filename,
+                                "file",
+                                display_name=display_name,
                             )
                             message_accumulator.add_attachment(part)
                             if attachment_saved_event := build_attachment_saved_event(
@@ -1170,7 +1196,11 @@ class ChatService:
 
     async def get_session(self, username: str, session_id: str) -> dict:
         session = await self.db.get_platform_session_by_id(session_id)
-        platform_id = session.platform_id if session else "webchat"
+        if not session:
+            raise ChatServiceError(f"Session {session_id} not found")
+        if session.creator != username:
+            raise ChatServiceError("Permission denied")
+        platform_id = session.platform_id
 
         project_info = await self.db.get_project_by_session(
             session_id=session_id, creator=username
