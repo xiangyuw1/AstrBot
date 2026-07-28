@@ -28,7 +28,7 @@ from astrbot.dashboard.services.plugin_service import (
     PLUGIN_UPDATE_SOURCE_REQUIRED_MESSAGE,
     PluginServiceError,
 )
-from astrbot.dashboard.services.skills_service import SkillArchive
+from astrbot.dashboard.services.skills_service import SkillArchive, SkillsServiceError
 
 JWT_SECRET = "fastapi-v1-test-secret-with-32-bytes"
 
@@ -289,6 +289,7 @@ class FakeConversation:
     title: str = "Demo conversation"
     persona_id: str | None = "persona/foo"
     history: str = "[]"
+    token_usage: int = 0
     created_at: str = "2026-01-01T00:00:00"
     updated_at: str = "2026-01-01T00:00:00"
 
@@ -296,6 +297,8 @@ class FakeConversation:
 class FakeConversationManager:
     def __init__(self) -> None:
         user_id = "webchat:FriendMessage:webchat!user!session-1"
+        self.last_filter_args: dict[str, list[str]] = {}
+        self.last_include_history = True
         self.conversations: dict[tuple[str, str], FakeConversation] = {
             (user_id, "conversation/with/slash"): FakeConversation(
                 cid="conversation/with/slash",
@@ -313,7 +316,15 @@ class FakeConversationManager:
         search_query: str,
         exclude_ids: list[str],
         exclude_platforms: list[str],
+        include_history: bool = True,
     ):
+        self.last_include_history = include_history
+        self.last_filter_args = {
+            "platforms": platforms,
+            "message_types": message_types,
+            "exclude_ids": exclude_ids,
+            "exclude_platforms": exclude_platforms,
+        }
         conversations = list(self.conversations.values())
         if platforms:
             conversations = [
@@ -1215,8 +1226,7 @@ async def test_v1_knowledge_base_create_validation_uses_api_error_shape(
     assert missing_provider_response.status_code == 200
     assert missing_provider_response.json()["status"] == "error"
     assert (
-        missing_provider_response.json()["message"]
-        == "缺少参数 embedding_provider_id"
+        missing_provider_response.json()["message"] == "缺少参数 embedding_provider_id"
     )
 
 
@@ -1232,6 +1242,102 @@ async def test_v1_conversation_path_id_allows_slash(asgi_client: httpx.AsyncClie
     payload = response.json()
     assert payload["status"] == "ok"
     assert payload["data"]["cid"] == "conversation/with/slash"
+
+
+@pytest.mark.asyncio
+async def test_v1_conversation_list_preserves_history_by_default(
+    asgi_client: httpx.AsyncClient,
+    fake_core_lifecycle,
+):
+    response = await asgi_client.get(
+        "/api/v1/conversations",
+        headers=_jwt_headers(),
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "ok"
+    conversation = payload["data"]["conversations"][0]
+    assert conversation["cid"] == "conversation/with/slash"
+    assert conversation["history"] == "[]"
+    assert fake_core_lifecycle.conversation_manager.last_include_history is True
+
+
+@pytest.mark.asyncio
+async def test_v1_conversation_list_returns_summary_without_history(
+    asgi_client: httpx.AsyncClient,
+    fake_core_lifecycle,
+):
+    response = await asgi_client.get(
+        "/api/v1/conversations",
+        params={"include_history": "false"},
+        headers=_jwt_headers(),
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "ok"
+    conversation = payload["data"]["conversations"][0]
+    assert conversation["cid"] == "conversation/with/slash"
+    assert "history" not in conversation
+    assert fake_core_lifecycle.conversation_manager.last_include_history is False
+
+
+@pytest.mark.asyncio
+async def test_legacy_conversation_list_preserves_history_by_default(
+    asgi_client: httpx.AsyncClient,
+):
+    response = await asgi_client.get(
+        "/api/conversation/list",
+        headers=_jwt_headers(),
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["data"]["conversations"][0]["history"] == "[]"
+
+
+@pytest.mark.asyncio
+async def test_legacy_conversation_list_returns_summary_without_history(
+    asgi_client: httpx.AsyncClient,
+):
+    response = await asgi_client.get(
+        "/api/conversation/list",
+        params={"include_history": "false"},
+        headers=_jwt_headers(),
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert "history" not in payload["data"]["conversations"][0]
+
+
+@pytest.mark.asyncio
+async def test_conversation_list_normalizes_comma_separated_filters(
+    asgi_client: httpx.AsyncClient,
+    fake_core_lifecycle,
+):
+    response = await asgi_client.get(
+        "/api/v1/conversations",
+        params={
+            "platforms": ", webchat-main ,",
+            "message_types": ", FriendMessage ,",
+            "exclude_ids": "astrbot, ,",
+            "exclude_platforms": ", webchat ,",
+        },
+        headers=_jwt_headers(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+    assert fake_core_lifecycle.conversation_manager.last_filter_args == {
+        "platforms": ["webchat-main"],
+        "message_types": ["FriendMessage"],
+        "exclude_ids": ["astrbot"],
+        "exclude_platforms": ["webchat"],
+    }
 
 
 @pytest.mark.asyncio
@@ -2844,6 +2950,11 @@ async def test_v1_safe_plugin_routes_accept_slash_ids(
         params={"plugin_id": plugin_id},
         headers=headers,
     )
+    config_response = await asgi_client.get(
+        "/api/v1/plugins/config",
+        params={"plugin_id": plugin_id},
+        headers=headers,
+    )
     config_files_response = await asgi_client.get(
         "/api/v1/plugins/config-files",
         params={"plugin_id": plugin_id, "config_key": "assets/path"},
@@ -2864,6 +2975,12 @@ async def test_v1_safe_plugin_routes_accept_slash_ids(
     }
     assert readme_response.status_code == 200
     assert readme_response.json()["data"]["name"] == plugin_id
+    assert config_response.status_code == 200
+    assert config_response.json()["data"] == {
+        "plugin_name": plugin_id,
+        "log_level": None,
+        "schema": {"name": plugin_id},
+    }
     assert schema_response.status_code == 200
     assert schema_response.json()["data"]["plugin_name"] == plugin_id
     assert config_files_response.status_code == 200
@@ -3225,6 +3342,83 @@ async def test_v1_safe_skill_routes_accept_slash_names(
     }
     assert delete_response.status_code == 200
     assert delete_response.json()["data"]["payload"] == {"name": skill_name}
+
+
+@pytest.mark.asyncio
+async def test_v1_skill_archive_errors_return_http_status(
+    asgi_app: FastAPI,
+    asgi_client: httpx.AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    skill_service = asgi_app.state.services.skills
+
+    def fake_prepare_skill_archive_404(_name: str):
+        raise SkillsServiceError("Local skill not found", status_code=404)
+
+    monkeypatch.setattr(
+        skill_service,
+        "prepare_skill_archive",
+        fake_prepare_skill_archive_404,
+    )
+
+    by_name_response = await asgi_client.get(
+        "/api/v1/skills/archive",
+        params={"skill_name": "missing_skill"},
+        headers=_jwt_headers(),
+    )
+    path_response = await asgi_client.get(
+        "/api/v1/skills/missing_skill/archive",
+        headers=_jwt_headers(),
+    )
+
+    assert by_name_response.status_code == 404
+    assert by_name_response.headers["content-type"].startswith("application/json")
+    assert by_name_response.json()["status"] == "error"
+    assert by_name_response.json()["message"] == "Local skill not found"
+    assert path_response.status_code == 404
+    assert path_response.headers["content-type"].startswith("application/json")
+    assert path_response.json()["message"] == "Local skill not found"
+
+    def fake_prepare_skill_archive_400(_name: str):
+        raise SkillsServiceError("Invalid skill name")
+
+    monkeypatch.setattr(
+        skill_service,
+        "prepare_skill_archive",
+        fake_prepare_skill_archive_400,
+    )
+
+    bad_request_response = await asgi_client.get(
+        "/api/v1/skills/archive",
+        params={"skill_name": "invalid_skill"},
+        headers=_jwt_headers(),
+    )
+
+    assert bad_request_response.status_code == 400
+    assert bad_request_response.headers["content-type"].startswith("application/json")
+    assert bad_request_response.json()["status"] == "error"
+    assert bad_request_response.json()["message"] == "Invalid skill name"
+
+    def fake_prepare_skill_archive_500(_name: str):
+        raise RuntimeError("Unexpected database error")
+
+    monkeypatch.setattr(
+        skill_service,
+        "prepare_skill_archive",
+        fake_prepare_skill_archive_500,
+    )
+
+    server_error_response = await asgi_client.get(
+        "/api/v1/skills/archive",
+        params={"skill_name": "error_skill"},
+        headers=_jwt_headers(),
+    )
+
+    assert server_error_response.status_code == 500
+    assert server_error_response.headers["content-type"].startswith("application/json")
+    assert server_error_response.json()["status"] == "error"
+    assert server_error_response.json()["message"] == "Failed to prepare skill archive"
+    assert "Unexpected database error" not in server_error_response.text
 
 
 @pytest.mark.asyncio
