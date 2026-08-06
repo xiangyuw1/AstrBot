@@ -68,8 +68,21 @@ def test_local_execute_shell_schema_replaces_background_with_yield():
     assert "background" not in inspect.signature(tool.call).parameters
 
 
+def test_shell_session_schema_supports_line_writes():
+    tool = ShellSessionTool()
+
+    assert "write_line" in tool.parameters["properties"]["action"]["enum"]
+    assert (
+        "LF is appended automatically"
+        in tool.parameters["properties"]["chars"]["description"]
+    )
+
+
 @pytest.mark.asyncio
-async def test_local_execute_shell_uses_managed_session(monkeypatch, tmp_path):
+async def test_local_execute_shell_manages_running_and_closed_results(
+    monkeypatch,
+    tmp_path,
+):
     from astrbot.core.tools.computer_tools import shell as shell_tools
 
     shell = LocalShellComponent()
@@ -117,6 +130,8 @@ async def test_local_execute_shell_uses_managed_session(monkeypatch, tmp_path):
         "workspace_root_for_context",
         AsyncMock(return_value=tmp_path),
     )
+    monotonic_values = iter((10.0, 10.5, 20.0, 21.234, 30.0, 32.346))
+    monkeypatch.setattr(shell_tools, "monotonic", lambda: next(monotonic_values))
 
     result = await LocalExecuteShellTool().call(
         FakeWrapper(),
@@ -136,6 +151,31 @@ async def test_local_execute_shell_uses_managed_session(monkeypatch, tmp_path):
         timeout=None,
         yield_time_ms=250,
     )
+    for status, exit_code, wall_time in (
+        ("completed", 0, "1.23"),
+        ("failed", 1, "2.35"),
+    ):
+        shell.exec_managed.return_value = {
+            "session_id": "sh_test",
+            "pid": 12345,
+            "status": status,
+            "stdout": "done\n",
+            "stderr": "",
+            "exit_code": exit_code,
+            "cursor": 5,
+            "has_more": False,
+            "session_closed": True,
+        }
+
+        result = await LocalExecuteShellTool().call(
+            FakeWrapper(),
+            command="echo done",
+        )
+
+        assert result == (
+            f"Command completed with exit code {exit_code} "
+            f"(wall time: {wall_time}s).\nOutput:\ndone\n"
+        )
 
 
 @pytest.mark.asyncio
@@ -249,16 +289,26 @@ async def test_shell_session_tool_lists_sessions_for_current_owner(monkeypatch):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("action", ["poll", "write", "interrupt", "terminate"])
+@pytest.mark.parametrize(
+    ("action", "component_action"),
+    [
+        ("poll", "poll"),
+        ("write", "write"),
+        ("write_line", "write"),
+        ("interrupt", "interrupt"),
+        ("terminate", "terminate"),
+    ],
+)
 async def test_shell_session_tool_passes_member_identity_to_session_actions(
     monkeypatch,
     action,
+    component_action,
 ):
     from astrbot.core.tools.computer_tools import shell as shell_tools
 
     shell = LocalShellComponent()
     operation = AsyncMock(return_value={"session_id": "sh_test", "status": "running"})
-    setattr(shell, f"{action}_session", operation)
+    setattr(shell, f"{component_action}_session", operation)
 
     class FakeBooter:
         pass
@@ -306,6 +356,9 @@ async def test_shell_session_tool_passes_member_identity_to_session_actions(
     assert operation.await_args.kwargs["owner_id"] == "group-umo"
     assert operation.await_args.kwargs["requester_id"] == "member-user"
     assert operation.await_args.kwargs["requester_is_admin"] is False
+    if component_action == "write":
+        expected_chars = "input\n" if action == "write_line" else "input"
+        assert operation.await_args.kwargs["chars"] == expected_chars
 
 
 @pytest.mark.asyncio
