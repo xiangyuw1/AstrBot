@@ -495,6 +495,10 @@ class ProviderManager:
                 from .sources.xinference_stt_provider import (
                     ProviderXinferenceSTT as ProviderXinferenceSTT,
                 )
+            case "volcengine_stt":
+                from .sources.volcengine_stt import (
+                    ProviderVolcengineSTT as ProviderVolcengineSTT,
+                )
             case "openai_tts_api":
                 from .sources.openai_tts_api_source import (
                     ProviderOpenAITTSAPI as ProviderOpenAITTSAPI,

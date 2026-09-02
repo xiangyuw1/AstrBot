@@ -1554,6 +1554,14 @@
                 "description": "Громкость",
                 "hint": "Громкость, от 0.0 до 2.0, по умолчанию 1.0."
             },
+            "volcengine_resource_id": {
+                "description": "ID ресурса Volcengine",
+                "hint": "ID ресурса голосового сервиса. Ark Agent Plan / модель потокового ASR Doubao 2.0 использует volc.seedasr.sauc.duration; устаревшая модель 1.0 — volc.bigasr.sauc.duration (почасовая) или volc.bigasr.sauc.concurrent (параллельная)."
+            },
+            "appid": {
+                "description": "App ID",
+                "hint": "APP ID из консоли речи Volcengine. Обязателен для TTS; для STT необязателен. Если пусто, используется аутентификация по API Key (X-Api-Key); если задан, api_key используется как Access Token (аутентификация старой консоли)."
+            },
             "azure_tts_voice": {
                 "description": "Стиль голоса",
                 "hint": "Системное имя голоса"

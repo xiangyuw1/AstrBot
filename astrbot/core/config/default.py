@@ -1706,6 +1706,19 @@ CONFIG_METADATA_2 = {
                         "timeout": "20",
                         "proxy": "",
                     },
+                    "火山引擎 STT(API)": {
+                        "id": "volcengine_stt",
+                        "provider": "volcengine",
+                        "type": "volcengine_stt",
+                        "provider_type": "speech_to_text",
+                        "enable": False,
+                        "api_key": "",
+                        "appid": "",
+                        "api_base": "wss://openspeech.bytedance.com/api/v3/plan/sauc/bigmodel_nostream",
+                        "model": "doubao-seed-asr-2.0",
+                        "volcengine_resource_id": "volc.seedasr.sauc.duration",
+                        "timeout": "60",
+                    },
                     "Whisper(Local)": {
                         "provider": "openai",
                         "type": "openai_whisper_selfhost",
@@ -2438,6 +2451,16 @@ CONFIG_METADATA_2 = {
                         "type": "float",
                         "description": "音量设置",
                         "hint": "音量设置，范围为 0.0 到 2.0,默认值为 1.0",
+                    },
+                    "volcengine_resource_id": {
+                        "type": "string",
+                        "description": "火山引擎资源 ID",
+                        "hint": "语音服务资源 ID。方舟 Agent Plan / 豆包流式语音识别模型 2.0 使用 volc.seedasr.sauc.duration；旧版豆包流式语音识别模型 1.0 小时版为 volc.bigasr.sauc.duration，并发版为 volc.bigasr.sauc.concurrent。",
+                    },
+                    "appid": {
+                        "type": "string",
+                        "description": "App ID",
+                        "hint": "火山引擎语音控制台的 APP ID。TTS 必填；STT 选填，留空时使用 API Key 鉴权（X-Api-Key），填写后 api_key 将作为 Access Token 使用（旧版控制台鉴权）。",
                     },
                     "azure_tts_voice": {
                         "type": "string",

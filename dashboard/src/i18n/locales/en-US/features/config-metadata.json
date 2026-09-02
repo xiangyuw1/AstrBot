@@ -1571,6 +1571,14 @@
         "description": "Volume",
         "hint": "Volume, range 0.0 to 2.0, default 1.0."
       },
+      "volcengine_resource_id": {
+        "description": "Volcengine resource ID",
+        "hint": "Speech service resource ID. Ark Agent Plan / Doubao streaming ASR model 2.0 uses volc.seedasr.sauc.duration; legacy Doubao streaming ASR model 1.0 uses volc.bigasr.sauc.duration (hourly) or volc.bigasr.sauc.concurrent (concurrency)."
+      },
+      "appid": {
+        "description": "App ID",
+        "hint": "APP ID from the Volcengine speech console. Required for TTS; optional for STT. When empty, authentication uses the API Key (X-Api-Key); when set, api_key is used as the Access Token (legacy console auth)."
+      },
       "azure_tts_voice": {
         "description": "Voice style",
         "hint": "API voice name"
