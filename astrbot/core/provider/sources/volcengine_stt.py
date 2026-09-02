@@ -22,6 +22,7 @@ _HEADER_SIZE = 0b0001
 _FULL_CLIENT_REQUEST = 0b0001
 _AUDIO_ONLY_REQUEST = 0b0010
 _FULL_SERVER_RESPONSE = 0b1001
+_SERVER_ACK = 0b1011
 _ERROR_RESPONSE = 0b1111
 _JSON_SERIALIZATION = 0b0001
 _GZIP_COMPRESSION = 0b0001
@@ -134,6 +135,7 @@ def _parse_response(data: bytes) -> tuple[bool, int, dict | None]:
         payload = payload[4:]
     if message_type in (
         _FULL_SERVER_RESPONSE,
+        _SERVER_ACK,
         _ERROR_RESPONSE,
         _FULL_CLIENT_REQUEST,
         _AUDIO_ONLY_REQUEST,
@@ -149,6 +151,33 @@ def _parse_response(data: bytes) -> tuple[bool, int, dict | None]:
         except Exception:
             logger.debug("Volcengine STT non-JSON payload: %s", payload[:200])
     return is_last, code, msg
+
+
+def _extract_texts(payload: dict | None) -> list[str]:
+    """Extract transcribed text pieces from a response payload.
+
+    The service returns ``result`` as a dict in non-streaming mode
+    (bigmodel_nostream) and as a list of utterance dicts in streaming
+    modes. Both shapes are handled here.
+
+    Args:
+        payload: The parsed response JSON.
+
+    Returns:
+        Text pieces in arrival order.
+    """
+    if not isinstance(payload, dict):
+        return []
+    result = payload.get("result")
+    if isinstance(result, dict):
+        return [result.get("text") or ""]
+    if isinstance(result, list):
+        return [
+            item.get("text") or "" if isinstance(item, dict) else item
+            for item in result
+            if item
+        ]
+    return []
 
 
 @register_provider_adapter(
@@ -255,9 +284,7 @@ class ProviderVolcengineSTT(STTProvider):
                             raise Exception(
                                 f"火山引擎 STT API 返回错误: {code}, {error_msg}"
                             )
-                        if isinstance(payload, dict):
-                            for item in payload.get("result") or []:
-                                texts.append(item.get("text") or "")
+                        texts.extend(_extract_texts(payload))
                         if is_last:
                             break
                     elif msg.type in (

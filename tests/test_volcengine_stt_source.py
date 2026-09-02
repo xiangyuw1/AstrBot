@@ -12,6 +12,7 @@ from astrbot.core.provider.sources.volcengine_stt import (
     ProviderVolcengineSTT,
     _build_audio_request,
     _build_full_request,
+    _extract_texts,
     _parse_response,
 )
 
@@ -139,12 +140,42 @@ def test_parse_server_response_and_text_join():
     assert not is_last and code == 0
     is_last, code, payload2 = _parse_response(frame2)
     assert is_last and code == 0
-    texts = [
-        item.get("text") or ""
-        for payload in (payload1, payload2)
-        for item in (payload.get("result") or [])
-    ]
+    texts = _extract_texts(payload1) + _extract_texts(payload2)
     assert "".join(texts) == "你好世界"
+
+
+def test_parse_server_ack_frame():
+    # The service acknowledges the full request with a SERVER_ACK (0b1011)
+    # frame that still carries the payload size prefix.
+    header = bytes(
+        (
+            (0b0001 << 4) | 0b0001,
+            (0b1011 << 4) | 0b0001,
+            (0b0001 << 4) | 0b0001,
+            0,
+        )
+    )
+    compressed = gzip.compress(json.dumps({"seq": 1}).encode())
+    frame = (
+        header + struct.pack(">i", 1) + struct.pack(">I", len(compressed)) + compressed
+    )
+    is_last, code, payload = _parse_response(frame)
+    assert not is_last and code == 0 and payload == {"seq": 1}
+
+
+def test_extract_texts_shapes():
+    # Non-streaming: result is a plain object.
+    assert _extract_texts({"result": {"text": "你好"}}) == ["你好"]
+    # Streaming: result is a list of utterance objects.
+    assert _extract_texts({"result": [{"text": "你"}, {"text": "好"}]}) == [
+        "你",
+        "好",
+    ]
+    # Tolerate a plain string list.
+    assert _extract_texts({"result": ["你好"]}) == ["你好"]
+    # No result or non-dict payload yields no text.
+    assert _extract_texts({"audio_info": {"duration": 1}}) == []
+    assert _extract_texts(None) == []
 
 
 def test_parse_error_response():
@@ -198,16 +229,16 @@ def test_get_text_streams_audio_and_joins_results(tmp_path):
             msg = await ws.receive()
             if msg.type != aiohttp.WSMsgType.BINARY:
                 break
-            _, _, _ = _parse_response(msg.data)
             seq = struct.unpack(">i", msg.data[4:8])[0]
             if seq < 0:
                 received["last_seq"] = seq
                 break
             received["audio_seqs"].append(seq)
 
-        await ws.send_bytes(_server_frame(1, {"result": [{"text": "你好，"}]}))
+        # Non-streaming responses return the final result once, with
+        # "result" as a plain object (not a list).
         await ws.send_bytes(
-            _server_frame(2, {"result": [{"text": "世界"}]}, is_last=True)
+            _server_frame(1, {"result": {"text": "你好，世界"}}, is_last=True)
         )
         await ws.close()
         return ws
