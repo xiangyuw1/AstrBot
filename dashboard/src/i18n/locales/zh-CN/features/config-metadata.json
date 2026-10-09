@@ -1,6 +1,6 @@
 {
   "ai_group": {
-    "name": "AI 配置",
+    "name": "AI",
     "agent_runner": {
       "description": "Agent 执行方式",
       "hint": "选择 AI 对话的执行器。切换执行器会使用新类型的默认配置，不保留上一类型的参数。",
@@ -253,7 +253,7 @@
         },
         "computer_use_require_admin": {
           "description": "沙箱能力需要 AstrBot 管理员权限",
-          "hint": "开启后，需要 AstrBot 管理员权限才能调用远程沙箱能力。在平台配置->管理员中可添加管理员。使用 /sid 指令查看管理员 ID。"
+          "hint": "开启后，需要 AstrBot 管理员权限才能调用远程沙箱能力。在配置文件 -> 访问控制 -> 管理员 -> 管理员 ID 中可添加管理员。给机器人发送 /sid 指令以获取 ID。"
         },
         "sandbox": {
           "booter": {
@@ -344,6 +344,10 @@
           "none": "关闭",
           "files": "仅文件访问",
           "full": "不受限访问"
+        },
+        "modeHints": {
+          "files": "可读写整个环境的文件，但不能执行 Shell/Python 代码或联网。",
+          "full": "可读写整个环境的文件，并可执行 Shell/Python 代码和联网。"
         },
         "unsupportedSelection": "当前策略不受支持",
         "runtimeUnknown": "运行环境信息不可用。",
@@ -523,7 +527,7 @@
     }
   },
   "platform_group": {
-    "name": "平台配置",
+    "name": "平台与消息",
     "platform": {
       "description": "消息平台适配器",
       "app_id": {
@@ -944,9 +948,6 @@
     },
     "general": {
       "description": "基本",
-      "admins_id": {
-        "description": "管理员 ID"
-      },
       "platform_settings": {
         "unique_session": {
           "description": "隔离对话",
@@ -977,29 +978,6 @@
       "disable_builtin_commands": {
         "description": "禁用自带指令",
         "hint": "禁用所有 AstrBot 自带指令,如 help, sid, new 等"
-      }
-    },
-    "whitelist": {
-      "description": "白名单",
-      "platform_settings": {
-        "enable_id_white_list": {
-          "description": "启用白名单",
-          "hint": "启用后,只有在白名单内的会话会被响应，白名单列表为空时代表不启用白名单（所有 ID 都会被放行）。"
-        },
-        "id_whitelist": {
-          "description": "白名单 ID 列表",
-          "hint": "使用 /sid 获取 ID。列表为空时表示该白名单不启用（即所有 ID 都在白名单内）。"
-        },
-        "id_whitelist_log": {
-          "description": "输出日志",
-          "hint": "启用后,当一条消息没通过白名单时,会输出 INFO 级别的日志。"
-        },
-        "wl_ignore_admin_on_group": {
-          "description": "管理员群组消息无视 ID 白名单"
-        },
-        "wl_ignore_admin_on_friend": {
-          "description": "管理员私聊消息无视 ID 白名单"
-        }
       }
     },
     "rate_limit": {
@@ -1048,15 +1026,6 @@
             "hint": "额外的屏蔽关键词列表,支持正则表达式。"
           }
         }
-      }
-    },
-    "t2i": {
-      "description": "文本转图像",
-      "t2i": {
-        "description": "文本转图像输出"
-      },
-      "t2i_word_threshold": {
-        "description": "文本转图像字数阈值"
       }
     },
     "others": {
@@ -1109,13 +1078,46 @@
       }
     }
   },
+  "access_group": {
+    "name": "访问控制",
+    "admins": {
+      "description": "管理员",
+      "admins_id": {
+        "description": "管理员 ID",
+        "hint": "给机器人发送 /sid 指令以获取 ID。"
+      }
+    },
+    "whitelist": {
+      "description": "白名单",
+      "platform_settings": {
+        "enable_id_white_list": {
+          "description": "启用白名单",
+          "hint": "启用后,只有在白名单内的会话会被响应。"
+        },
+        "id_whitelist": {
+          "description": "白名单 ID 列表",
+          "hint": "给机器人发送 /sid 指令以获取 ID。为空时代表不启用白名单功能。"
+        },
+        "id_whitelist_log": {
+          "description": "输出拦截日志",
+          "hint": "输出未通过白名单校验的消息的日志。"
+        },
+        "wl_ignore_admin_on_group": {
+          "description": "管理员群组消息无视 ID 白名单"
+        },
+        "wl_ignore_admin_on_friend": {
+          "description": "管理员私聊消息无视 ID 白名单"
+        }
+      }
+    }
+  },
   "plugin_group": {
-    "name": "插件配置",
+    "name": "插件",
     "plugin": {
       "description": "插件",
       "plugin_set": {
         "description": "可用插件",
-        "hint": "默认启用全部未被禁用的插件。若插件在插件页面被禁用,则此处的选择不会生效。"
+        "hint": "默认启用全部未被禁用的插件。若插件在插件管理页被禁用,则此处的选择不会生效。"
       }
     }
   },
@@ -1211,12 +1213,15 @@
           }
         }
       }
-    }
-  },
-  "system_group": {
-    "name": "系统配置",
-    "system": {
-      "description": "系统配置",
+    },
+    "t2i": {
+      "description": "文本转图像",
+      "t2i": {
+        "description": "文本转图像输出"
+      },
+      "t2i_word_threshold": {
+        "description": "文本转图像字数阈值"
+      },
       "t2i_strategy": {
         "description": "文本转图像策略",
         "hint": "文本转图像策略。`remote` 为使用远程基于 HTML 的渲染服务,`local` 为使用 PIL 本地渲染。当使用 local 时,将 ttf 字体命名为 'font.ttf' 放在 data/ 目录下可自定义字体。"
@@ -1232,7 +1237,13 @@
       "t2i_active_template": {
         "description": "当前应用的文转图渲染模板",
         "hint": "此处的值由文转图模板管理页面进行维护。"
-      },
+      }
+    }
+  },
+  "system_group": {
+    "name": "系统配置",
+    "system": {
+      "description": "系统配置",
       "log_level": {
         "description": "控制台日志级别",
         "hint": "控制台输出日志的级别。"

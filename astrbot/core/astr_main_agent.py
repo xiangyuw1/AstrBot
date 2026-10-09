@@ -114,6 +114,7 @@ from astrbot.core.utils.file_extract import extract_file_moonshotai
 from astrbot.core.utils.image_input import prepare_request_images
 from astrbot.core.utils.llm_metadata import LLM_METADATAS
 from astrbot.core.utils.media_utils import (
+    describe_media_ref,
     is_file_uri,
     is_recoverable_image_error,
     normalize_model_image_max_size,
@@ -1503,7 +1504,9 @@ async def collect_initial_request(
                         if not is_recoverable_image_error(exc):
                             raise
                         logger.warning(
-                            "Image attachment is unavailable (%s).", type(exc).__name__
+                            "Image attachment is unavailable (%s): %s",
+                            type(exc).__name__,
+                            describe_media_ref(comp.url or comp.file),
                         )
                         req.extra_user_content_parts.append(
                             TextPart(text="[Image unavailable]")
@@ -1524,7 +1527,17 @@ async def collect_initial_request(
                         if not source_is_local and Path(image_path).is_file():
                             event.track_temporary_local_file(image_path)
                 elif isinstance(comp, Record):
-                    audio_path = await comp.convert_to_file_path()
+                    try:
+                        audio_path = await comp.convert_to_file_path()
+                    except Exception as exc:  # noqa: BLE001
+                        logger.warning(
+                            "Voice attachment is unavailable (%s).",
+                            type(exc).__name__,
+                        )
+                        req.extra_user_content_parts.append(
+                            TextPart(text="[Voice unavailable]")
+                        )
+                        continue
                     req.audio_urls.append(audio_path)
                     _append_audio_attachment(req, audio_path)
                 elif isinstance(comp, File):
@@ -1557,8 +1570,11 @@ async def collect_initial_request(
                                 if not is_recoverable_image_error(exc):
                                     raise
                                 logger.warning(
-                                    "Quoted image is unavailable (%s).",
+                                    "Quoted image is unavailable (%s): %s",
                                     type(exc).__name__,
+                                    describe_media_ref(
+                                        reply_comp.url or reply_comp.file
+                                    ),
                                 )
                                 req.extra_user_content_parts.append(
                                     TextPart(text="[Image unavailable]")
@@ -1578,7 +1594,17 @@ async def collect_initial_request(
                                     event.track_temporary_local_file(image_path)
                             quoted_image_refs.add(image_path)
                         elif isinstance(reply_comp, Record):
-                            audio_path = await reply_comp.convert_to_file_path()
+                            try:
+                                audio_path = await reply_comp.convert_to_file_path()
+                            except Exception as exc:  # noqa: BLE001
+                                logger.warning(
+                                    "Quoted voice is unavailable (%s).",
+                                    type(exc).__name__,
+                                )
+                                req.extra_user_content_parts.append(
+                                    TextPart(text="[Voice unavailable]")
+                                )
+                                continue
                             req.audio_urls.append(audio_path)
                             _append_quoted_audio_attachment(req, audio_path)
                         elif isinstance(reply_comp, File):
