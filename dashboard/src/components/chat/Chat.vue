@@ -2232,7 +2232,7 @@ async function stopCurrentSession() {
 /* The header draws across the whole width, above the full-height chat sidebar. */
 :global(.chat-sidebar .v-navigation-drawer__content) {
   /* Seat the brand's top edge at the content area's top edge, fully below the toolbar. */
-  padding-top: calc(var(--astrbot-toolbar-height, 40px) - 10px);
+  padding-top: calc(var(--astrbot-toolbar-height, 42px) - 10px);
   box-sizing: border-box;
 }
 
@@ -2243,7 +2243,7 @@ async function stopCurrentSession() {
 }
 
 :global(html:not([data-astrbot-desktop-platform='macos']) .chat-sidebar .chat-sidebar-brand) {
-  min-height: var(--astrbot-toolbar-height, 40px);
+  min-height: var(--astrbot-toolbar-height, 42px);
 }
 
 /* On macOS the chat sidebar stays transparent; the shared tint is painted behind it. */
@@ -2386,7 +2386,7 @@ async function stopCurrentSession() {
 
 .chat-sidebar-rail-btn {
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--astrbot-radius-navigation);
   background: transparent;
   color: rgb(var(--v-theme-on-surface));
   cursor: pointer;
@@ -2448,7 +2448,7 @@ async function stopCurrentSession() {
 .new-chat-btn,
 .settings-btn {
   color: rgb(var(--v-theme-on-surface));
-  border-radius: 8px;
+  border-radius: var(--astrbot-radius-navigation);
 }
 
 .sidebar-action-icon {
@@ -2467,7 +2467,7 @@ async function stopCurrentSession() {
   min-height: 36px;
   height: 36px;
   justify-content: flex-start;
-  border-radius: 8px;
+  border-radius: var(--astrbot-radius-navigation);
   text-transform: none;
   letter-spacing: 0;
   font-size: 14px;
@@ -2561,7 +2561,7 @@ async function stopCurrentSession() {
   width: 100%;
   min-height: 30px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--astrbot-radius-navigation);
   background: transparent;
   color: inherit;
   display: flex;
