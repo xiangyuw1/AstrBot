@@ -1845,6 +1845,14 @@
         "description": "音量設定",
         "hint": "音量を 0.0～2.0 の範囲で設定します。デフォルトは 1.0 です。"
       },
+      "volcengine_resource_id": {
+        "description": "Volcengine リソース ID",
+        "hint": "音声サービスのリソース ID です。方舟 Agent Plan / Doubao ストリーミング音声認識モデル 2.0 では volc.seedasr.sauc.duration を使用します。旧版 Doubao ストリーミング音声認識モデル 1.0 の時間版は volc.bigasr.sauc.duration、同時接続版は volc.bigasr.sauc.concurrent です。"
+      },
+      "appid": {
+        "description": "App ID",
+        "hint": "Volcengine 音声コンソールの APP ID です。TTS では必須、STT では任意です。空欄の場合は API Key 認証（X-Api-Key）を使用し、入力した場合は api_key を Access Token として使用します（旧コンソール認証）。"
+      },
       "azure_tts_voice": {
         "description": "ボイス設定",
         "hint": "API のボイス名"
@@ -1875,6 +1883,10 @@
       },
       "dashscope_tts_voice": {
         "description": "ボイス"
+      },
+      "dashscope_tts_websocket_url": {
+        "description": "WebSocket エンドポイント",
+        "hint": "任意。Qwen-Audio-TTS モデルを使用する場合に入力してください。空欄の場合は DashScope SDK のデフォルトアドレスを使用します。wss://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/api-ws/v1/inference などの完全な WebSocket URL を入力し、{WorkspaceId} を実際のワークスペース ID に置き換えてください。"
       },
       "gm_resp_image_modal": {
         "description": "画像モダリティを有効化",
@@ -1916,11 +1928,11 @@
         "description": "思考設定",
         "budget": {
           "description": "思考予算",
-          "hint": "モデルの推論で使用する思考トークン数の上限を指定します。参照：https://ai.google.dev/gemini-api/docs/thinking#set-budget"
+          "hint": "Gemini 2.5の思考トークン予算を設定します。空欄の場合はモデルの既定値を使用します。参照 https://ai.google.dev/gemini-api/docs/thinking#set-budget"
         },
         "level": {
           "description": "思考レベル",
-          "hint": "Gemini 3 以降のモデルでの使用を推奨します。推論動作を制御できます。参照: https://ai.google.dev/gemini-api/docs/thinking#thinking-levels"
+          "hint": "参照 https://ai.google.dev/gemini-api/docs/thinking#thinking-levels"
         }
       },
       "anth_thinking_config": {
@@ -2026,6 +2038,15 @@
         "description": "voice",
         "hint": "OpenAI TTS のボイスです。OpenAI のデフォルト対応値: 'alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'"
       },
+      "deepseek-tts-voice": {
+        "description": "ボイス",
+        "hint": "DeepSeek TTS のボイスです。対応する voice_id が API に送信されます。",
+        "labels": ["Stella（女性、デフォルト）", "Tide（男性）"]
+      },
+      "deepseek-tts-filter-markdown": {
+        "description": "Markdown をフィルター",
+        "hint": "合成前に Markdown 書式を削除します。デフォルトで有効です。"
+      },
       "elevenlabs-tts-voice-id": {
         "description": "ボイス ID",
         "hint": "ElevenLabs のボイス ID です。https://elevenlabs.io/app/voice-library でボイス ID を参照してコピーできます。デフォルトは 'JBFqnCBsd6RMkjVDRZzb'（George）です。"
@@ -2060,15 +2081,19 @@
       },
       "mimo-tts-style-prompt": {
         "description": "スタイルプロンプト",
-        "hint": "<style>...</style> タグとして合成対象テキストの先頭に追加され、話速、感情、キャラクター、スタイルを制御します。例: 楽しく、速く、孫悟空、ささやき声。空欄でも構いません。"
+        "hint": "話速、感情、キャラクター、スタイルを制御します。例: 楽しく、速く、孫悟空、ささやき声。v2 シリーズでは <style>...</style> タグとして合成対象テキストの先頭に連結され、v2.5 シリーズでは （...） 括弧形式で連結されます。空欄でも構いません。"
       },
       "mimo-tts-dialect": {
         "description": "方言",
-        "hint": "スタイルプロンプトとともに先頭の <style>...</style> タグへ追加します。例：東北方言、四川方言、河南方言、広東語。空欄でも構いません。"
+        "hint": "スタイルプロンプトとともにテキストの先頭に連結します。例：東北方言、四川方言、河南方言、広東語。v2 シリーズでは <style> タグ、v2.5 シリーズでは （） 括弧を使用します。空欄でも構いません。"
       },
-      "mimo-tts-seed-text": {
-        "description": "シードテキスト",
-        "hint": "任意の user メッセージとして送信し、口調やスタイルの調整を補助します。合成対象テキストには連結されません。"
+      "mimo-tts-user-prompt": {
+        "description": "ユーザープロンプト",
+        "hint": "任意の user メッセージとして送信し、口調やスタイルの調整を補助します。合成対象テキストには連結されません。voicedesign モデルでは自然言語で音声を記述するために使用します。"
+      },
+      "mimo-tts-voice-audio-path": {
+        "description": "クローン音声ファイルのパス",
+        "hint": "voiceclone モデルで模擬する音声ファイルのローカルパスです（例: /path/to/audio.wav）。voiceclone モデルのみ入力が必要です。"
       },
       "fishaudio-tts-character": {
         "description": "character",
